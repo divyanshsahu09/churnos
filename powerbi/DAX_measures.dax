@@ -1,0 +1,54 @@
+// ============================================================
+// Churn Rescue OS — DAX Measures (copy-paste into Power BI)
+// Table name assumed: powerbi_customers
+// Create each via: Home > New Measure
+// ============================================================
+
+Total Customers = COUNTROWS(powerbi_customers)
+
+Churned Customers = CALCULATE(COUNTROWS(powerbi_customers), powerbi_customers[Churn] = "Yes")
+
+Churn Rate % = DIVIDE([Churned Customers], [Total Customers]) * 100
+
+Avg Churn Probability % = AVERAGE(powerbi_customers[churn_probability]) * 100
+
+Revenue at Risk =
+SUM(powerbi_customers[clv_at_risk])
+
+Persuadables Count =
+CALCULATE(COUNTROWS(powerbi_customers), powerbi_customers[segment] = "Persuadables")
+
+Persuadable Revenue at Risk =
+CALCULATE(SUM(powerbi_customers[clv_at_risk]), powerbi_customers[segment] = "Persuadables")
+
+Avg Monthly Charges = AVERAGE(powerbi_customers[MonthlyCharges])
+
+High Risk Count =
+CALCULATE(COUNTROWS(powerbi_customers), powerbi_customers[risk_band] = "High")
+
+// ---------- Page 3: ROI Simulator ----------
+// First create What-If parameter: Modelling > New Parameter
+// Name: DiscountPct, Range 0 to 30, Increment 1, Default 10
+// Power BI creates DiscountPct[DiscountPct Value]
+// Also create a second parameter SaveRatePct, Range 5 to 60, Default 25
+
+Intervention Cost =
+// Only spend on Persuadables — that is the whole point of segmentation
+CALCULATE(
+    SUM(powerbi_customers[MonthlyCharges]),
+    powerbi_customers[segment] = "Persuadables"
+) * (DiscountPct[DiscountPct Value] / 100) * 3
+// x3 = offer runs for 3 months
+
+Revenue Saved =
+[Persuadable Revenue at Risk] * (SaveRatePct[SaveRatePct Value] / 100)
+
+Net ROI = [Revenue Saved] - [Intervention Cost]
+
+ROI % = DIVIDE([Net ROI], [Intervention Cost]) * 100
+
+Cost If You Target EVERYONE =
+SUM(powerbi_customers[MonthlyCharges]) * (DiscountPct[DiscountPct Value] / 100) * 3
+
+Money Wasted on Non-Persuadables = [Cost If You Target EVERYONE] - [Intervention Cost]
+// ^ This measure is your interview demo: "targeting everyone wastes $X"
